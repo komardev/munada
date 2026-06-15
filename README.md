@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/logo.png" alt="Munada" width="120">
+<img src="docs/icon.png" alt="Munada" width="120">
 
 # Munada
 
