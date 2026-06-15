@@ -30,7 +30,25 @@ dropdown — computed offline, no network, no tracking.
 - Open at login
 - Languages: Indonesian, English, Arabic (defaults to the system language)
 
-## Build
+## Download
+
+1. Grab `Munada.zip` from the [latest release](../../releases/latest) and unzip it.
+2. Move **Munada.app** to your `/Applications` folder.
+3. The app isn't notarized by Apple yet, so on first launch macOS will warn that
+   it "can't be checked for malicious software." To allow it, run this once in
+   Terminal:
+
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/Munada.app
+   ```
+
+   Then open Munada normally. (Alternatively: right-click the app → **Open** →
+   **Open**.) The app lives in the menu bar — there's no Dock icon or window.
+
+> Munada is open source and computes everything locally. The warning appears
+> only because the build isn't signed with a paid Apple Developer ID.
+
+## Build from source
 
 Requires macOS 13+, Xcode, and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
