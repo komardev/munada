@@ -1,10 +1,19 @@
+<div align="center">
+
 # Munada
 
-A lightweight macOS menu bar app for Muslim prayer times. Shows the next
-prayer and a live countdown in the menu bar, with today's full schedule in the
-dropdown. Times are computed offline — no network, no tracking.
+**A lightweight macOS menu bar app for Muslim prayer times.**
 
-![Munada](docs/screenshot.png)
+Next prayer and a live countdown in the menu bar, today's full schedule in the
+dropdown — computed offline, no network, no tracking.
+
+![Platform](https://img.shields.io/badge/platform-macOS%2013%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Swift](https://img.shields.io/badge/Swift-5-orange)
+
+<img src="docs/screenshot.png" alt="Munada menu bar dropdown showing today's prayer schedule" width="380">
+
+</div>
 
 ## Features
 
