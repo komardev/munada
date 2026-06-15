@@ -12,7 +12,8 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 echo "Downloading Munada…"
-curl -fsSL "$URL" -o "$TMP/Munada.zip"
+curl -fSL --retry 5 --retry-delay 2 --retry-connrefused --connect-timeout 15 \
+  "$URL" -o "$TMP/Munada.zip"
 
 echo "Installing to /Applications…"
 osascript -e 'tell application "Munada" to quit' >/dev/null 2>&1 || true
