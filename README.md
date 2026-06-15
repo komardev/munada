@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/logo.png" alt="Munada" width="120">
+
 # Munada
 
 **A lightweight macOS menu bar app for Muslim prayer times.**
@@ -11,7 +13,7 @@ dropdown — computed offline, no network, no tracking.
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Swift](https://img.shields.io/badge/Swift-5-orange)
 
-<img src="docs/screenshot.png" alt="Munada menu bar dropdown showing today's prayer schedule" width="380">
+<img src="docs/screenshot.png" alt="Munada menu bar dropdown showing today's prayer schedule" width="560">
 
 </div>
 
