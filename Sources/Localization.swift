@@ -30,9 +30,9 @@ enum Lang: String, CaseIterable {
 enum LKey {
     case prayerTimes, next, inDuration, atTime, now
     case detectLocation, searchCity, chooseCity, language, method, madhab, adjust, reset, openAtLogin, quit
-    case notifications, notifEnable, preAlert, off, notifDenied, openSettings
+    case notifications, notifEnable, preAlert, off, notifDenied, openSettings, useMethod
     case searchTitle, searchPrompt, searchPlaceholder, searchOK, cancel
-    case locationTitle, locationDenied, cityNotFound
+    case locationTitle, locationDenied, cityNotFound, currentLocation
 }
 
 /// Lokalisasi sederhana berbasis kode. Bahasa aktif disimpan di UserDefaults.
@@ -40,8 +40,19 @@ enum L10n {
     private static let key = "lang"
 
     static var current: Lang {
-        get { Lang(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? .id }
+        get { Lang(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? systemDefault }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: key) }
+    }
+
+    /// Bahasa awal (sebelum user pilih) ikut bahasa macOS; fallback English kalau tak didukung.
+    private static var systemDefault: Lang {
+        for code in Locale.preferredLanguages {
+            let c = code.lowercased()
+            if c.hasPrefix("id") || c.hasPrefix("in") { return .id }   // "in" = kode lama Indonesia
+            if c.hasPrefix("ar") { return .ar }
+            if c.hasPrefix("en") { return .en }
+        }
+        return .en
     }
 
     static var locale: Locale { Locale(identifier: current.localeID) }
@@ -101,6 +112,15 @@ enum L10n {
         }
     }
 
+    /// Tawaran ganti metode sesuai negara terdeteksi.
+    static func suggestMethod(_ country: String, _ method: CalcMethod) -> String {
+        switch current {
+        case .id: return "Lokasi terdeteksi di \(country). Pakai metode \(method.displayName)?"
+        case .en: return "Location detected in \(country). Use the \(method.displayName) method?"
+        case .ar: return "تم تحديد موقعك في \(country). هل تريد استخدام طريقة \(method.displayName)؟"
+        }
+    }
+
     static func tr(_ k: LKey) -> String {
         table[current]?[k] ?? table[.en]?[k] ?? ""
     }
@@ -117,11 +137,11 @@ enum L10n {
             .searchPlaceholder: "Nama kota", .searchOK: "Cari", .cancel: "Batal",
             .locationTitle: "Lokasi",
             .locationDenied: "Izin lokasi ditolak. Aktifkan di System Settings › Privacy › Location.",
-            .cityNotFound: "Kota tidak ketemu.",
+            .cityNotFound: "Kota tidak ketemu.", .currentLocation: "Lokasi Saat Ini",
             .notifications: "Notifikasi", .notifEnable: "Aktifkan",
             .preAlert: "Ingatkan Sebelum", .off: "Mati",
             .notifDenied: "Izin notifikasi ditolak. Aktifkan di System Settings › Notifications › Munada.",
-            .openSettings: "Buka Pengaturan",
+            .openSettings: "Buka Pengaturan", .useMethod: "Pakai",
         ],
         .en: [
             .prayerTimes: "Prayer Times", .next: "Next", .inDuration: "in",
@@ -134,11 +154,11 @@ enum L10n {
             .searchPlaceholder: "City name", .searchOK: "Search", .cancel: "Cancel",
             .locationTitle: "Location",
             .locationDenied: "Location permission denied. Enable it in System Settings › Privacy › Location.",
-            .cityNotFound: "City not found.",
+            .cityNotFound: "City not found.", .currentLocation: "Current Location",
             .notifications: "Notifications", .notifEnable: "Enable",
             .preAlert: "Remind Before", .off: "Off",
             .notifDenied: "Notification permission denied. Enable it in System Settings › Notifications › Munada.",
-            .openSettings: "Open Settings",
+            .openSettings: "Open Settings", .useMethod: "Use",
         ],
         .ar: [
             .prayerTimes: "أوقات الصلاة", .next: "التالية", .inDuration: "خلال",
@@ -151,11 +171,11 @@ enum L10n {
             .searchPlaceholder: "اسم المدينة", .searchOK: "بحث", .cancel: "إلغاء",
             .locationTitle: "الموقع",
             .locationDenied: "تم رفض إذن الموقع. فعّله من إعدادات النظام › الخصوصية › الموقع.",
-            .cityNotFound: "المدينة غير موجودة.",
+            .cityNotFound: "المدينة غير موجودة.", .currentLocation: "الموقع الحالي",
             .notifications: "الإشعارات", .notifEnable: "تفعيل",
             .preAlert: "تذكير قبل", .off: "إيقاف",
             .notifDenied: "تم رفض إذن الإشعارات. فعّله من إعدادات النظام › الإشعارات › Munada.",
-            .openSettings: "فتح الإعدادات",
+            .openSettings: "فتح الإعدادات", .useMethod: "استخدام",
         ],
     ]
 }

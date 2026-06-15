@@ -65,6 +65,27 @@ enum CalcMethod: String, CaseIterable {
         get { CalcMethod(rawValue: UserDefaults.standard.string(forKey: "calcMethod") ?? "") ?? .kemenag }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: "calcMethod") }
     }
+
+    /// Metode yang lazim dipakai di suatu negara (kode ISO). Buat saran saat lokasi berubah.
+    /// Sisanya → MWL (paling umum global). nil kalau kode tak diketahui.
+    static func recommended(forCountryCode code: String?) -> CalcMethod? {
+        guard let c = code?.uppercased() else { return nil }
+        switch c {
+        case "ID":                               return .kemenag
+        case "MY", "SG", "BN":                   return .singapore
+        case "SA", "YE":                         return .ummAlQura
+        case "AE":                               return .dubai
+        case "KW":                               return .kuwait
+        case "QA", "BH":                         return .qatar
+        case "EG", "SY", "LB", "LY", "SD", "JO": return .egyptian
+        case "PK", "IN", "BD", "AF", "LK":       return .karachi
+        case "TR":                               return .turkey
+        case "IR":                               return .tehran
+        case "US", "CA", "MX":                   return .isna
+        case "GB", "IE":                         return .moonsighting
+        default:                                 return .mwl
+        }
+    }
 }
 
 /// Mazhab penentu cara hitung Ashar. Shafi (panjang bayangan 1×) juga dipakai Maliki/Hanbali/Jafari;

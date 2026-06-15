@@ -6,7 +6,7 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private let geocoder = CLGeocoder()
 
-    var onResult: ((_ lat: Double, _ lon: Double, _ name: String) -> Void)?
+    var onResult: ((_ lat: Double, _ lon: Double, _ name: String, _ country: String?) -> Void)?
     var onError: ((String) -> Void)?
 
     /// Mode silent: auto-refresh (bangun sleep / startup) — udah ada lokasi tersimpan,
@@ -32,7 +32,7 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
                 return
             }
             let name = p.locality ?? p.subAdministrativeArea ?? p.administrativeArea ?? q
-            self?.onResult?(loc.coordinate.latitude, loc.coordinate.longitude, name)
+            self?.onResult?(loc.coordinate.latitude, loc.coordinate.longitude, name, p.isoCountryCode)
         }
     }
 
@@ -81,11 +81,12 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
         let lat = loc.coordinate.latitude
         let lon = loc.coordinate.longitude
         geocoder.reverseGeocodeLocation(loc) { [weak self] placemarks, _ in
-            let name = placemarks?.first?.locality
-                ?? placemarks?.first?.subAdministrativeArea
-                ?? placemarks?.first?.administrativeArea
-                ?? "Lokasi Saat Ini"
-            self?.onResult?(lat, lon, name)
+            let p = placemarks?.first
+            let name = p?.locality
+                ?? p?.subAdministrativeArea
+                ?? p?.administrativeArea
+                ?? L10n.tr(.currentLocation)
+            self?.onResult?(lat, lon, name, p?.isoCountryCode)
         }
     }
 

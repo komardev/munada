@@ -38,8 +38,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         // Lokasi berubah (manual / GPS) → update teks + jadwal ulang notif.
         store.onChange = { [weak self] in self?.updateTitle(); self?.scheduleNotifications() }
-        locationManager.onResult = { [weak self] lat, lon, name in
+        locationManager.onResult = { [weak self] lat, lon, name, country in
             self?.store.set(latitude: lat, longitude: lon, name: name)
+            self?.maybeSuggestMethod(country: country)
         }
         locationManager.onError = { [weak self] msg in self?.showError(msg) }
 
@@ -387,6 +388,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let v = sender.representedObject as? Int else { return }
         NotifPrefs.preAlert = v
         scheduleNotifications()
+    }
+
+    /// Tawar metode sesuai negara terdeteksi (Deteksi/Cari). Gak auto-ganti; nanya dulu.
+    /// Anti-nag: cuma sekali per negara (simpan negara terakhir yang sudah ditawarin).
+    private func maybeSuggestMethod(country: String?) {
+        guard let code = country,
+              let rec = CalcMethod.recommended(forCountryCode: code),
+              rec != CalcMethod.current else { return }
+        let key = "lastSuggestCountry"
+        guard UserDefaults.standard.string(forKey: key) != code else { return }
+        UserDefaults.standard.set(code, forKey: key)
+
+        let countryName = Locale(identifier: L10n.current.localeID).localizedString(forRegionCode: code) ?? code
+        let alert = NSAlert()
+        alert.messageText = L10n.tr(.method)
+        alert.informativeText = L10n.suggestMethod(countryName, rec)
+        alert.addButton(withTitle: L10n.tr(.useMethod))
+        alert.addButton(withTitle: L10n.tr(.cancel))
+        NSApp.activate(ignoringOtherApps: true)
+        if alert.runModal() == .alertFirstButtonReturn {
+            CalcMethod.current = rec
+            updateTitle()
+            scheduleNotifications()
+        }
     }
 
     @objc private func detectLocation() {
