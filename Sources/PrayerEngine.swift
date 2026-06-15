@@ -1,20 +1,16 @@
 import Foundation
 import Adhan
 
-/// Satu waktu sholat: jenis + jam. Nama tampilan via L10n.
 struct PrayerSlot {
     let kind: PrayerKind
     let date: Date
     var name: String { L10n.prayerName(kind) }
 }
 
-/// Metode kalkulasi waktu sholat. Beda wilayah pakai sudut Fajr/Isha beda.
-/// Tersimpan di UserDefaults; default Kemenag (Indonesia).
 enum CalcMethod: String, CaseIterable {
     case kemenag, mwl, ummAlQura, egyptian, karachi, isna
     case dubai, kuwait, qatar, singapore, turkey, tehran, moonsighting
 
-    /// Nama tampilan (nama lembaga = nama diri, tak diterjemah; hint wilayah dlm kurung).
     var displayName: String {
         switch self {
         case .kemenag:     return "Kemenag (Indonesia)"
@@ -33,10 +29,6 @@ enum CalcMethod: String, CaseIterable {
         }
     }
 
-    /// Parameter Adhan per metode. Madhab & koreksi-manual diset terpisah di PrayerEngine.
-    /// Kemenag: Fajr 20° / Isha 18° + ihtiyati (margin keamanan) ala jadwal resmi Indonesia —
-    /// +2 menit utk sholat, −2 utk Terbit/Syuruq. Ditaruh di `adjustments` (preset lain pakai
-    /// `methodAdjustments` internal, jadi tak bentrok dgn koreksi manual yg juga ke `adjustments`).
     var params: CalculationParameters {
         var p: CalculationParameters
         switch self {
@@ -66,8 +58,6 @@ enum CalcMethod: String, CaseIterable {
         set { UserDefaults.standard.set(newValue.rawValue, forKey: "calcMethod") }
     }
 
-    /// Metode yang lazim dipakai di suatu negara (kode ISO). Buat saran saat lokasi berubah.
-    /// Sisanya → MWL (paling umum global). nil kalau kode tak diketahui.
     static func recommended(forCountryCode code: String?) -> CalcMethod? {
         guard let c = code?.uppercased() else { return nil }
         switch c {
@@ -88,8 +78,6 @@ enum CalcMethod: String, CaseIterable {
     }
 }
 
-/// Mazhab penentu cara hitung Ashar. Shafi (panjang bayangan 1×) juga dipakai Maliki/Hanbali/Jafari;
-/// Hanafi (bayangan 2×) → Ashar lebih lambat. Default Shafi (mayoritas Indonesia).
 enum MadhabPref: String, CaseIterable {
     case shafi, hanafi
 
@@ -108,10 +96,8 @@ enum MadhabPref: String, CaseIterable {
     }
 }
 
-/// Koreksi manual per-waktu (menit), tersimpan di UserDefaults. Buat nyamain ke jadwal lokal.
-/// Ditambahkan DI ATAS ihtiyati metode — jadi Kemenag +2 lalu +koreksi user.
 enum Offsets {
-    static let range = -5...5   // batas wajar; di luar ini bukan koreksi tapi salah metode
+    static let range = -5...5
 
     static func minutes(_ kind: PrayerKind) -> Int {
         UserDefaults.standard.integer(forKey: "offset_\(kind.rawValue)")
@@ -121,20 +107,15 @@ enum Offsets {
     }
 }
 
-/// Hitung waktu sholat offline pakai Adhan. Default: Jakarta + metode aktif (CalcMethod.current).
 struct PrayerEngine {
-    var latitude: Double = -6.2088   // Jakarta
+    var latitude: Double = -6.2088
     var longitude: Double = 106.8456
 
     private let calendar = Calendar(identifier: .gregorian)
 
-    /// Parameter kalkulasi: metode aktif + mazhab + koreksi manual user.
-    /// highLatitudeRule sengaja dibiarkan nil → Adhan otomatis pakai .recommended(for: coords)
-    /// (lihat CalculationParameters.swift:70), aman utk lintang tinggi.
     private func params() -> CalculationParameters {
         var p = CalcMethod.current.params
         p.madhab = MadhabPref.current.adhan
-        // Koreksi user DITAMBAHKAN ke ihtiyati metode (bukan menimpa).
         let base = p.adjustments
         p.adjustments = PrayerAdjustments(
             fajr:    base.fajr    + Offsets.minutes(.fajr),
@@ -164,12 +145,10 @@ struct PrayerEngine {
         ]
     }
 
-    /// Semua waktu sholat hari ini (buat dropdown).
     func todaySlots(now: Date = Date()) -> [PrayerSlot] {
         slots(for: now)
     }
 
-    /// Slot beberapa hari ke depan (buat jadwal notifikasi), hanya yang belum lewat.
     func upcomingSlots(now: Date = Date(), days: Int) -> [PrayerSlot] {
         var out: [PrayerSlot] = []
         for d in 0..<max(1, days) {
@@ -179,13 +158,11 @@ struct PrayerEngine {
         return out.filter { $0.date > now }
     }
 
-    /// Sholat berikutnya. Kalau Isya sudah lewat, ambil Subuh besok.
     func nextPrayer(now: Date = Date()) -> PrayerSlot? {
         let today = slots(for: now).filter { $0.kind != .sunrise }
         if let next = today.first(where: { $0.date > now }) {
             return next
         }
-        // Semua lewat → Subuh besok.
         guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: now) else { return nil }
         return slots(for: tomorrow).first { $0.kind == .fajr }
     }
