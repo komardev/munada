@@ -32,7 +32,19 @@ dropdown — computed offline, no network, no tracking.
 - Open at login
 - Languages: Indonesian, English, Arabic (defaults to the system language)
 
-## Download
+## Install (recommended)
+
+One line in Terminal — downloads the latest release into `/Applications` and
+launches it:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/komardev/munada/main/scripts/install.sh | bash
+```
+
+Because the download happens through Terminal rather than a browser, macOS
+doesn't quarantine the app, so it opens without a Gatekeeper prompt.
+
+## Download manually
 
 1. Download **Munada.zip** from the [latest release](../../releases/latest) and unzip it.
 2. Move **Munada.app** into `/Applications`.
