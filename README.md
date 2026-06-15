@@ -34,21 +34,24 @@ dropdown — computed offline, no network, no tracking.
 
 ## Download
 
-1. Grab `Munada.zip` from the [latest release](../../releases/latest) and unzip it.
-2. Move **Munada.app** to your `/Applications` folder.
-3. The app isn't notarized by Apple yet, so on first launch macOS will warn that
-   it "can't be checked for malicious software." To allow it, run this once in
-   Terminal:
+1. Download **Munada.zip** from the [latest release](../../releases/latest) and unzip it.
+2. Move **Munada.app** into `/Applications`.
+3. The app isn't notarized by Apple yet, so the first launch is blocked with
+   *"Apple could not verify Munada is free of malware."* This is expected for an
+   unsigned open-source app. Clear it once in Terminal:
 
    ```sh
    xattr -dr com.apple.quarantine /Applications/Munada.app
    ```
 
-   Then open Munada normally. (Alternatively: right-click the app → **Open** →
-   **Open**.) The app lives in the menu bar — there's no Dock icon or window.
+   Then open Munada from Launchpad or Applications. (On macOS Sequoia the
+   right-click → **Open** trick no longer works — use the command above, or go to
+   **System Settings → Privacy & Security** and click **Open Anyway**.)
 
-> Munada is open source and computes everything locally. The warning appears
-> only because the build isn't signed with a paid Apple Developer ID.
+> Munada runs entirely on your Mac — no account, no network, no tracking. The
+> warning only appears because the build isn't signed with a paid Apple
+> Developer ID; the source in this repo is exactly what the binary runs. A
+> notarized, warning-free build is planned.
 
 ## Build from source
 
