@@ -14,3 +14,6 @@ Munada.xcodeproj/
 xcuserdata/
 .swiftpm/
 Package.resolved
+
+# Notarization output
+dist/
