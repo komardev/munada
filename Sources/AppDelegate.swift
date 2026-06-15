@@ -4,6 +4,7 @@ import ServiceManagement
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var timer: Timer?
+    private var lastNotifDay = 0            // hari terakhir notif dijadwal → deteksi pergantian hari
     private let store = LocationStore()
     private let locationManager = LocationManager()
 
@@ -35,8 +36,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.delegate = self
         statusItem.menu = menu
 
-        // Lokasi berubah (manual / GPS) → update teks.
-        store.onChange = { [weak self] in self?.updateTitle() }
+        // Lokasi berubah (manual / GPS) → update teks + jadwal ulang notif.
+        store.onChange = { [weak self] in self?.updateTitle(); self?.scheduleNotifications() }
         locationManager.onResult = { [weak self] lat, lon, name in
             self?.store.set(latitude: lat, longitude: lon, name: name)
         }
@@ -48,11 +49,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         updateTitle()
         scheduleMinuteTimer()
+        scheduleNotifications()
     }
 
     @objc private func didWake() {
         updateTitle()
         locationManager.detectIfAuthorized()
+        scheduleNotifications()          // geser jendela jadwal + pulihkan kalau habis
     }
 
     /// Menu di-isi cuma saat mau dibuka → gak ada kerja sia-sia tiap menit.
@@ -133,6 +136,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Update teks status bar saja (dipanggil tiap menit + saat ada perubahan). Ringan.
     private func updateTitle() {
         let now = Date()
+        // Pergantian hari → jadwal ulang biar jendela notif 3-hari selalu terisi.
+        let day = Calendar.current.ordinality(of: .day, in: .era, for: now) ?? 0
+        if day != lastNotifDay { lastNotifDay = day; scheduleNotifications() }
         guard let next = engine.nextPrayer(now: now) else {
             statusItem.button?.title = " –"
             return
@@ -185,6 +191,74 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         langItem.submenu = langMenu
         menu.addItem(langItem)
+
+        // 5b. Metode kalkulasi.
+        let methodItem = actionItem(L10n.tr(.method), nil, symbol: "ruler")
+        let methodMenu = NSMenu()
+        for m in CalcMethod.allCases {
+            let it = NSMenuItem(title: m.displayName, action: #selector(selectMethod(_:)), keyEquivalent: "")
+            it.representedObject = m.rawValue
+            if m == CalcMethod.current { it.state = .on }
+            methodMenu.addItem(it)
+        }
+        methodItem.submenu = methodMenu
+        menu.addItem(methodItem)
+
+        // 5c. Mazhab (cara hitung Ashar).
+        let madhabItem = actionItem(L10n.tr(.madhab), nil, symbol: "sun.max")
+        let madhabMenu = NSMenu()
+        for mz in MadhabPref.allCases {
+            let it = NSMenuItem(title: mz.displayName, action: #selector(selectMadhab(_:)), keyEquivalent: "")
+            it.representedObject = mz.rawValue
+            if mz == MadhabPref.current { it.state = .on }
+            madhabMenu.addItem(it)
+        }
+        madhabItem.submenu = madhabMenu
+        menu.addItem(madhabItem)
+
+        // 5d. Koreksi waktu manual per-sholat (menit) → nyamain ke jadwal lokal.
+        let adjItem = actionItem(L10n.tr(.adjust), nil, symbol: "plusminus")
+        let adjMenu = NSMenu()
+        for kind in PrayerKind.allCases {
+            let cur = Offsets.minutes(kind)
+            let suffix = cur == 0 ? "" : String(format: "  (%+d)", cur)
+            let row = NSMenuItem(title: L10n.prayerName(kind) + suffix, action: nil, keyEquivalent: "")
+            let sub = NSMenu()
+            for v in Offsets.range {
+                let label = v == 0 ? "0" : String(format: "%+d", v)
+                let it = NSMenuItem(title: label, action: #selector(selectOffset(_:)), keyEquivalent: "")
+                it.representedObject = ["kind": kind.rawValue, "min": v] as [String: Any]
+                if v == cur { it.state = .on }
+                sub.addItem(it)
+            }
+            row.submenu = sub
+            adjMenu.addItem(row)
+        }
+        adjMenu.addItem(.separator())
+        adjMenu.addItem(NSMenuItem(title: L10n.tr(.reset), action: #selector(resetOffsets), keyEquivalent: ""))
+        adjItem.submenu = adjMenu
+        menu.addItem(adjItem)
+        menu.addItem(.separator())
+
+        // 5e. Notifikasi.
+        let notifItem = actionItem(L10n.tr(.notifications), nil, symbol: "bell")
+        let notifMenu = NSMenu()
+        let onItem = NSMenuItem(title: L10n.tr(.notifEnable), action: #selector(toggleNotif), keyEquivalent: "")
+        onItem.state = NotifPrefs.enabled ? .on : .off
+        notifMenu.addItem(onItem)
+        let preItem = NSMenuItem(title: L10n.tr(.preAlert), action: nil, keyEquivalent: "")
+        let preMenu = NSMenu()
+        for v in NotifPrefs.preAlertOptions {
+            let it = NSMenuItem(title: v == 0 ? L10n.tr(.off) : L10n.duration(v),
+                                action: #selector(selectPreAlert(_:)), keyEquivalent: "")
+            it.representedObject = v
+            if v == NotifPrefs.preAlert { it.state = .on }
+            preMenu.addItem(it)
+        }
+        preItem.submenu = preMenu
+        notifMenu.addItem(preItem)
+        notifItem.submenu = notifMenu
+        menu.addItem(notifItem)
         menu.addItem(.separator())
 
         // 6. Buka saat login.
@@ -254,6 +328,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let raw = sender.representedObject as? String, let lang = Lang(rawValue: raw) else { return }
         L10n.current = lang
         updateTitle()
+        scheduleNotifications()          // judul notif ikut bahasa
+    }
+
+    @objc private func selectMethod(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let m = CalcMethod(rawValue: raw) else { return }
+        CalcMethod.current = m
+        updateTitle()
+        scheduleNotifications()
+    }
+
+    @objc private func selectMadhab(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let mz = MadhabPref(rawValue: raw) else { return }
+        MadhabPref.current = mz
+        updateTitle()
+        scheduleNotifications()
+    }
+
+    @objc private func selectOffset(_ sender: NSMenuItem) {
+        guard let d = sender.representedObject as? [String: Any],
+              let raw = d["kind"] as? String, let kind = PrayerKind(rawValue: raw),
+              let min = d["min"] as? Int else { return }
+        Offsets.set(min, kind)
+        updateTitle()
+        scheduleNotifications()
+    }
+
+    @objc private func resetOffsets() {
+        for kind in PrayerKind.allCases { Offsets.set(0, kind) }
+        updateTitle()
+        scheduleNotifications()
+    }
+
+    // MARK: - Notifikasi
+
+    private func scheduleNotifications() {
+        Notifier.shared.refresh(engine: engine, locationName: store.name)
+    }
+
+    @objc private func toggleNotif() {
+        if NotifPrefs.enabled {
+            NotifPrefs.enabled = false
+            scheduleNotifications()          // bersihkan pending
+        } else {
+            Notifier.shared.requestAuthorization { [weak self] granted in
+                guard let self = self else { return }
+                if granted {
+                    NotifPrefs.enabled = true
+                    self.scheduleNotifications()
+                } else {
+                    self.showNotifDenied()
+                }
+            }
+        }
+    }
+
+    @objc private func selectPreAlert(_ sender: NSMenuItem) {
+        guard let v = sender.representedObject as? Int else { return }
+        NotifPrefs.preAlert = v
+        scheduleNotifications()
     }
 
     @objc private func detectLocation() {
@@ -273,6 +406,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         alert.window.initialFirstResponder = field
         if alert.runModal() == .alertFirstButtonReturn {
             locationManager.search(field.stringValue)
+        }
+    }
+
+    /// Alert izin notif ditolak — dgn tombol pintas ke pane Notifications System Settings.
+    private func showNotifDenied() {
+        let alert = NSAlert()
+        alert.messageText = L10n.tr(.notifications)
+        alert.informativeText = L10n.tr(.notifDenied)
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: L10n.tr(.openSettings))
+        alert.addButton(withTitle: L10n.tr(.cancel))
+        NSApp.activate(ignoringOtherApps: true)
+        if alert.runModal() == .alertFirstButtonReturn,
+           let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") {
+            NSWorkspace.shared.open(url)
         }
     }
 

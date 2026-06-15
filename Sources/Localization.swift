@@ -1,7 +1,7 @@
 import Foundation
 
 /// Jenis waktu sholat — language-agnostic. Nama tampilan via L10n.
-enum PrayerKind: CaseIterable {
+enum PrayerKind: String, CaseIterable {
     case fajr, sunrise, dhuhr, asr, maghrib, isha
 }
 
@@ -29,7 +29,8 @@ enum Lang: String, CaseIterable {
 /// Kunci string yang butuh terjemahan.
 enum LKey {
     case prayerTimes, next, inDuration, atTime, now
-    case detectLocation, searchCity, chooseCity, language, openAtLogin, quit
+    case detectLocation, searchCity, chooseCity, language, method, madhab, adjust, reset, openAtLogin, quit
+    case notifications, notifEnable, preAlert, off, notifDenied, openSettings
     case searchTitle, searchPrompt, searchPlaceholder, searchOK, cancel
     case locationTitle, locationDenied, cityNotFound
 }
@@ -82,6 +83,24 @@ enum L10n {
         return "\(minutes)\(m)"
     }
 
+    /// Judul notif utama: "Waktunya {name}".
+    static func notifEntered(_ name: String) -> String {
+        switch current {
+        case .id: return "Waktunya \(name)"
+        case .en: return "Time for \(name)"
+        case .ar: return "حان وقت \(name)"
+        }
+    }
+
+    /// Judul pra-pengingat: "{name} {n} menit lagi".
+    static func notifSoon(_ name: String, _ mins: Int) -> String {
+        switch current {
+        case .id: return "\(name) \(mins) menit lagi"
+        case .en: return "\(name) in \(mins) min"
+        case .ar: return "\(name) بعد \(mins) دقيقة"
+        }
+    }
+
     static func tr(_ k: LKey) -> String {
         table[current]?[k] ?? table[.en]?[k] ?? ""
     }
@@ -91,37 +110,52 @@ enum L10n {
             .prayerTimes: "Waktu Sholat", .next: "Berikutnya", .inDuration: "dalam",
             .atTime: "pukul", .now: "sekarang",
             .detectLocation: "Deteksi Lokasi Otomatis", .searchCity: "Cari Kota…",
-            .chooseCity: "Pilih Kota", .language: "Bahasa",
+            .chooseCity: "Pilih Kota", .language: "Bahasa", .method: "Metode Kalkulasi",
+            .madhab: "Mazhab (Ashar)", .adjust: "Koreksi Waktu (menit)", .reset: "Reset ke 0",
             .openAtLogin: "Buka saat login", .quit: "Keluar",
             .searchTitle: "Cari Kota", .searchPrompt: "Ketik nama kota (mis. Cilacap, Dubai):",
             .searchPlaceholder: "Nama kota", .searchOK: "Cari", .cancel: "Batal",
             .locationTitle: "Lokasi",
             .locationDenied: "Izin lokasi ditolak. Aktifkan di System Settings › Privacy › Location.",
             .cityNotFound: "Kota tidak ketemu.",
+            .notifications: "Notifikasi", .notifEnable: "Aktifkan",
+            .preAlert: "Ingatkan Sebelum", .off: "Mati",
+            .notifDenied: "Izin notifikasi ditolak. Aktifkan di System Settings › Notifications › Munada.",
+            .openSettings: "Buka Pengaturan",
         ],
         .en: [
             .prayerTimes: "Prayer Times", .next: "Next", .inDuration: "in",
             .atTime: "at", .now: "now",
             .detectLocation: "Detect Location Automatically", .searchCity: "Search City…",
-            .chooseCity: "Choose City", .language: "Language",
+            .chooseCity: "Choose City", .language: "Language", .method: "Calculation Method",
+            .madhab: "Madhab (Asr)", .adjust: "Time Adjustment (min)", .reset: "Reset to 0",
             .openAtLogin: "Open at Login", .quit: "Quit",
             .searchTitle: "Search City", .searchPrompt: "Type a city name (e.g. Jakarta, Dubai):",
             .searchPlaceholder: "City name", .searchOK: "Search", .cancel: "Cancel",
             .locationTitle: "Location",
             .locationDenied: "Location permission denied. Enable it in System Settings › Privacy › Location.",
             .cityNotFound: "City not found.",
+            .notifications: "Notifications", .notifEnable: "Enable",
+            .preAlert: "Remind Before", .off: "Off",
+            .notifDenied: "Notification permission denied. Enable it in System Settings › Notifications › Munada.",
+            .openSettings: "Open Settings",
         ],
         .ar: [
             .prayerTimes: "أوقات الصلاة", .next: "التالية", .inDuration: "خلال",
             .atTime: "الساعة", .now: "الآن",
             .detectLocation: "تحديد الموقع تلقائيًا", .searchCity: "بحث عن مدينة…",
-            .chooseCity: "اختر مدينة", .language: "اللغة",
+            .chooseCity: "اختر مدينة", .language: "اللغة", .method: "طريقة الحساب",
+            .madhab: "المذهب (العصر)", .adjust: "تعديل الوقت (دقيقة)", .reset: "إعادة إلى 0",
             .openAtLogin: "الفتح عند تسجيل الدخول", .quit: "خروج",
             .searchTitle: "بحث عن مدينة", .searchPrompt: "اكتب اسم المدينة (مثل جدة، دبي):",
             .searchPlaceholder: "اسم المدينة", .searchOK: "بحث", .cancel: "إلغاء",
             .locationTitle: "الموقع",
             .locationDenied: "تم رفض إذن الموقع. فعّله من إعدادات النظام › الخصوصية › الموقع.",
             .cityNotFound: "المدينة غير موجودة.",
+            .notifications: "الإشعارات", .notifEnable: "تفعيل",
+            .preAlert: "تذكير قبل", .off: "إيقاف",
+            .notifDenied: "تم رفض إذن الإشعارات. فعّله من إعدادات النظام › الإشعارات › Munada.",
+            .openSettings: "فتح الإعدادات",
         ],
     ]
 }
